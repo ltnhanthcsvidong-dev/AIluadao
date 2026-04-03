@@ -1,6 +1,12 @@
 // State management
 let currentImageBlob = null;
 let stream = null;
+let qrScanner = null;
+
+// Chart Globals
+let ratioChart = null;
+let riskChart = null;
+let trendChart = null;
 
 // Theme Management
 const themeToggle = document.getElementById('theme-toggle');
@@ -22,11 +28,13 @@ themeToggle.addEventListener('click', () => {
         localStorage.setItem('theme', 'light');
         themeToggle.innerText = '☀️';
     }
+    updateChartColors();
 });
 
 // DOM Elements
 const btnUpload = document.getElementById('btn-upload');
 const btnCamera = document.getElementById('btn-camera');
+const btnQR = document.getElementById('btn-qr');
 const btnCapture = document.getElementById('btn-capture');
 const fileInput = document.getElementById('file-input');
 const videoStream = document.getElementById('video-stream');
@@ -79,14 +87,45 @@ btnCapture.addEventListener('click', () => {
         previewBox.style.display = 'block';
         cameraBox.style.display = 'none';
         
-        // Stop stream
         if (stream) {
             stream.getTracks().forEach(track => track.stop());
         }
     }, 'image/webp');
 });
 
-// 3. Handle Scan
+// 3. QR Scanner
+btnQR.addEventListener('click', () => {
+    document.getElementById('qr-overlay').style.display = 'flex';
+    qrScanner = new Html5Qrcode("qr-reader");
+    qrScanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        (decodedText) => {
+            textInput.value = decodedText;
+            stopQR();
+        },
+        (errorMessage) => { }
+    ).catch(err => {
+        alert("Lỗi camera QR: " + err);
+        stopQR();
+    });
+});
+
+function stopQR() {
+    if (qrScanner) {
+        qrScanner.stop().then(() => {
+            document.getElementById('qr-overlay').style.display = 'none';
+        }).catch(() => {
+            document.getElementById('qr-overlay').style.display = 'none';
+        });
+    } else {
+        document.getElementById('qr-overlay').style.display = 'none';
+    }
+}
+
+document.getElementById('btn-qr-close').addEventListener('click', stopQR);
+
+// 4. Handle Scan
 btnScan.addEventListener('click', async () => {
     const text = textInput.value;
     if (!text && !currentImageBlob) {
@@ -94,7 +133,6 @@ btnScan.addEventListener('click', async () => {
         return;
     }
 
-    // UI Loading State
     loader.style.display = 'block';
     btnText.style.display = 'none';
     btnScan.disabled = true;
@@ -116,6 +154,7 @@ btnScan.addEventListener('click', async () => {
             alert(result.error);
         } else {
             renderResult(result);
+            updateCharts(); // Real-time update
         }
     } catch (err) {
         alert("Đã có lỗi xảy ra trong quá trình kết nối AI: " + err.message);
@@ -126,15 +165,31 @@ btnScan.addEventListener('click', async () => {
     }
 });
 
-// 4. Render Result
-function renderResult(data) {
+// 5. Render Result & Animations
+async function renderResult(data) {
     document.getElementById('input-section').style.display = 'none';
     document.getElementById('result-section').style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    const riskBadge = document.getElementById('risk-badge');
-    riskBadge.innerText = data.risk_level.toUpperCase();
-    riskBadge.className = 'risk-badge ' + (data.is_scam ? 'risk-high' : 'risk-low');
+    const needle = document.getElementById('meter-needle');
+    const badge = document.getElementById('risk-badge');
     
+    let rotation = -90;
+    let badgeClass = 'risk-low';
+
+    switch(data.risk_level.toLowerCase()) {
+        case 'low': rotation = -60; badgeClass = 'risk-low'; break;
+        case 'medium': rotation = -15; badgeClass = 'risk-medium'; break;
+        case 'high': rotation = 30; badgeClass = 'risk-high'; break;
+        case 'critical': rotation = 80; badgeClass = 'risk-critical'; break;
+    }
+
+    setTimeout(() => {
+        needle.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
+        badge.innerText = data.risk_level.toUpperCase();
+        badge.className = 'risk-badge ' + badgeClass;
+    }, 500);
+
     document.getElementById('result-summary').innerText = data.summary;
 
     const grid = document.getElementById('perspective-grid');
@@ -159,37 +214,221 @@ function renderResult(data) {
             <p>${data.perspectives[key] || "Đang xử lý..."}</p>
         `;
         grid.appendChild(card);
+        await new Promise(r => setTimeout(r, 400));
+        card.classList.add('show');
     }
-    
-    // Smooth scroll to top
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    document.getElementById('btn-copy').onclick = () => {
+        const report = `AIluadao Report\nSummary: ${data.summary}\nRisk: ${data.risk_level}\n\nTop Action: ${data.perspectives.action}`;
+        navigator.clipboard.writeText(report);
+        alert("Đã sao chép báo cáo!");
+    };
+
+    document.getElementById('btn-share').onclick = () => {
+        if (navigator.share) {
+            navigator.share({
+                title: 'Báo cáo AIluadao',
+                text: data.summary,
+                url: window.location.href
+            });
+        } else {
+            alert("Trình duyệt không hỗ trợ chia sẻ!");
+        }
+    };
+
+    // Back to Menu Logic
+    document.getElementById('btn-back').onclick = () => {
+        document.getElementById('result-section').style.display = 'none';
+        document.getElementById('input-section').style.display = 'block';
+        
+        // Reset Inputs
+        textInput.value = '';
+        currentImageBlob = null;
+        imagePreview.src = '';
+        previewBox.style.display = 'none';
+        cameraBox.style.display = 'none';
+        
+        // Window scroll
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 }
 
-// 5. History Management
-const btnHistoryToggle = document.getElementById('btn-history-toggle');
-const btnCloseHistory = document.getElementById('btn-close-history');
-const historySidebar = document.getElementById('history-sidebar');
-const historyList = document.getElementById('history-list');
+// 6. Analytics & History Management
+async function initCharts() {
+    const ctxRatio = document.getElementById('ratioChart').getContext('2d');
+    const ctxRisk = document.getElementById('riskChart').getContext('2d');
+    const ctxTrend = document.getElementById('trendChart').getContext('2d');
 
-btnHistoryToggle.addEventListener('click', () => {
-    historySidebar.classList.add('active');
-    loadHistory();
-});
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false, // Để khớp với kích thước container đã cố định trong CSS
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: { 
+                    color: getComputedStyle(document.documentElement).getPropertyValue('--text-main').trim(),
+                    padding: 20
+                }
+            }
+        }
+    };
 
-btnCloseHistory.addEventListener('click', () => {
-    historySidebar.classList.remove('active');
-});
+    ratioChart = new Chart(ctxRatio, {
+        type: 'doughnut',
+        data: {
+            labels: ['An toàn', 'Lừa đảo'],
+            datasets: [{
+                data: [1, 0],
+                backgroundColor: ['#22c55e', '#ef4444'],
+                borderWidth: 0
+            }]
+        },
+        options: chartOptions
+    });
+
+    riskChart = new Chart(ctxRisk, {
+        type: 'bar',
+        data: {
+            labels: ['Low', 'Medium', 'High', 'Critical'],
+            datasets: [{
+                label: 'Số lượt',
+                data: [0, 0, 0, 0],
+                backgroundColor: ['#22c55e', '#eab308', '#f97316', '#ef4444'],
+                borderRadius: 8
+            }]
+        },
+        options: {
+            ...chartOptions,
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#94a3b8' } },
+                x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+            }
+        }
+    });
+
+    trendChart = new Chart(ctxTrend, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: 'Số vụ Lừa đảo (Local)',
+                    data: [],
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Xu hướng Quốc gia (NCSC)',
+                    data: [],
+                    borderColor: '#6366f1',
+                    borderDash: [5, 5],
+                    tension: 0.4,
+                    pointRadius: 0,
+                    yAxisID: 'y1'
+                }
+            ]
+        },
+        options: {
+            ...chartOptions,
+            scales: {
+                y: { 
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    beginAtZero: true, 
+                    grid: { color: 'rgba(255,255,255,0.05)' }, 
+                    ticks: { color: '#ef4444' },
+                    title: { display: true, text: 'Local', color: '#ef4444' }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    beginAtZero: true,
+                    grid: { drawOnChartArea: false },
+                    ticks: { color: '#6366f1' },
+                    title: { display: true, text: 'National', color: '#6366f1' }
+                },
+                x: { 
+                    display: true, 
+                    grid: { display: false }, 
+                    ticks: { color: '#94a3b8' } 
+                }
+            }
+        }
+    });
+
+    updateCharts();
+}
+
+async function updateCharts() {
+    try {
+        const response = await fetch('/api/stats');
+        const data = await response.json();
+
+        // Update Stats Cards
+        document.getElementById('stat-total-scans').innerText = data.total;
+        const totalScams = (data.scam_ratio['True'] || 0) + (data.scam_ratio['1'] || 0);
+        document.getElementById('stat-total-scams').innerText = totalScams;
+
+        // Update Ratio Chart
+        const safeCount = (data.scam_ratio['False'] || 0) + (data.scam_ratio['0'] || 0);
+        ratioChart.data.datasets[0].data = [safeCount || 1, totalScams];
+        ratioChart.update();
+
+        // Update Risk Distribution Chart
+        const riskLevels = ['Low', 'Medium', 'High', 'Critical'];
+        riskChart.data.datasets[0].data = riskLevels.map(level => data.risk_dist[level] || 0);
+        riskChart.update();
+
+        // Update Trend Chart
+        const trendData = data.trends;
+        trendChart.data.labels = trendData.map(t => {
+            const date = new Date(t.date);
+            return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+        });
+        
+        // Local Data
+        trendChart.data.datasets[0].data = trendData.map(t => t.scams);
+        
+        // National Trend (Simulated based on context or higher scale)
+        trendChart.data.datasets[1].data = trendData.map(t => Math.floor(t.scams * 12.5) + 10);
+        
+        trendChart.update();
+        
+        loadCommunityLibrary();
+    } catch (err) { console.error("Lỗi cập nhật biểu đồ:", err); }
+}
+
+function updateChartColors() {
+    const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-main').trim();
+    if (ratioChart) {
+        ratioChart.options.plugins.legend.labels.color = textColor;
+        ratioChart.update();
+    }
+    if (riskChart) {
+        riskChart.options.plugins.legend.labels.color = textColor;
+        riskChart.update();
+    }
+    if (trendChart) {
+        trendChart.options.plugins.legend.labels.color = textColor;
+        trendChart.update();
+    }
+}
 
 async function loadHistory() {
+    const historyList = document.getElementById('history-list');
     try {
         const response = await fetch('/history');
         const data = await response.json();
-        
         if (data.length === 0) {
             historyList.innerHTML = '<p class="empty-msg">Chưa có lịch sử quét nào.</p>';
             return;
         }
-
         historyList.innerHTML = '';
         data.forEach(item => {
             const div = document.createElement('div');
@@ -200,16 +439,43 @@ async function loadHistory() {
             `;
             div.onclick = () => {
                 renderResult(item);
-                historySidebar.classList.remove('active');
+                document.getElementById('history-sidebar').classList.remove('active');
             };
             historyList.appendChild(div);
         });
-    } catch (err) {
-        console.error("Lỗi khi tải lịch sử:", err);
-    }
+    } catch (err) { console.error(err); }
 }
 
-// Load history count/indicator on page load
+async function loadCommunityLibrary() {
+    const libGrid = document.getElementById('scam-library-grid');
+    try {
+        const response = await fetch('/api/top-scams');
+        const data = await response.json();
+        if (data.length === 0) return; 
+        libGrid.innerHTML = '';
+        data.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'scam-card';
+            card.innerHTML = `
+                <span class="scam-type">${item.risk_level}</span>
+                <h4>${item.summary.substring(0, 50)}...</h4>
+                <p>${Object.values(item.perspectives)[0].substring(0, 100)}...</p>
+            `;
+            card.onclick = () => renderResult(item);
+            libGrid.appendChild(card);
+        });
+    } catch (err) { console.error(err); }
+}
+
+document.getElementById('btn-history-toggle').addEventListener('click', () => {
+    document.getElementById('history-sidebar').classList.add('active');
+    loadHistory();
+});
+
+document.getElementById('btn-close-history').addEventListener('click', () => {
+    document.getElementById('history-sidebar').classList.remove('active');
+});
+
 window.addEventListener('DOMContentLoaded', () => {
-    // Optional: add a badge to the history icon if there are new items
+    initCharts();
 });

@@ -13,7 +13,7 @@ from engine.db_manager import save_scan, get_all_history, get_scan_by_id
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
-app.secret_key = 'supersecretkey'
+app.secret_key = os.environ.get('SECRET_KEY', 'default-dev-key-123')
 
 # Ensure upload folder exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -59,6 +59,20 @@ def history_detail(scan_id):
     if data:
         return jsonify(data)
     return jsonify({"error": "Không tìm thấy"}), 404
+
+@app.route('/api/top-scams')
+def top_scams():
+    # Lấy 6 vụ lừa đảo nguy hiểm nhất (Risk level Critical/High)
+    data = get_all_history()
+    top = [item for item in data if item.get('risk_level') in ['Critical', 'High']][:6]
+    return jsonify(top)
+
+@app.route('/api/stats')
+def stats():
+    from engine.db_manager import get_stats as fetch_stats, get_daily_trends
+    data = fetch_stats()
+    data['trends'] = get_daily_trends()
+    return jsonify(data)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

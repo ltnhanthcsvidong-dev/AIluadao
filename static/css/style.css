@@ -74,6 +74,7 @@ h1 {
     font-size: 2.5rem;
     background: linear-gradient(to right, #818cf8, #c084fc);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 0.5rem;
 }
@@ -203,10 +204,68 @@ video {
 
 .risk-high { background: rgba(239, 68, 68, 0.2); color: #fecaca; border: 1px solid #ef4444; }
 .risk-low { background: rgba(34, 197, 94, 0.2); color: #bbf7d0; border: 1px solid #22c55e; }
+.risk-medium { background: rgba(245, 158, 11, 0.2); color: #fde68a; border: 1px solid #f59e0b; }
+.risk-critical { background: rgba(153, 27, 27, 0.2); color: #f87171; border: 1px solid #991b1b; animation: pulse 2s infinite; }
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Risk Meter (Gauge) */
+.meter-container {
+    position: relative;
+    width: 240px;
+    height: 120px;
+    margin: 0 auto 2rem;
+    overflow: hidden;
+}
+
+.meter-bg {
+    width: 240px;
+    height: 240px;
+    border-radius: 50%;
+    background: conic-gradient(
+        from 270deg,
+        #22c55e 0%,
+        #eab308 30%,
+        #ef4444 60%,
+        #8b0000 100%
+    );
+    mask: radial-gradient(circle, transparent 65%, black 66%);
+    -webkit-mask: radial-gradient(circle, transparent 65%, black 66%);
+}
+
+.meter-needle {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 4px;
+    height: 90px;
+    background: var(--text-main);
+    transform-origin: bottom center;
+    transform: translateX(-50%) rotate(-90deg); /* Start at Green */
+    transition: transform 1.5s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+    border-radius: 4px;
+    z-index: 10;
+}
+
+.meter-center {
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 20px;
+    background: var(--text-main);
+    border-radius: 50%;
+    z-index: 11;
+}
 
 .perspective-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 1rem;
     margin-top: 2rem;
 }
@@ -216,7 +275,14 @@ video {
     border: 1px solid var(--glass-border);
     padding: 1.25rem;
     border-radius: 1rem;
-    transition: transform 0.3s;
+    transition: all 0.3s;
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+.perspective-card.show {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 .perspective-card:hover {
@@ -332,10 +398,196 @@ video {
     font-size: 0.9rem;
 }
 
-.header-left {
-    position: absolute;
+/* Community Library */
+.library-section {
+    margin-top: 4rem;
+    width: 100%;
+}
+
+.library-section h2 {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.scam-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+.scam-card {
+    background: var(--card-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 1rem;
+    padding: 1.25rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.scam-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--primary);
+}
+
+.scam-card .scam-type {
+    font-size: 0.7rem;
+    background: var(--accent-red);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 0.5rem;
+}
+
+.scam-card h4 {
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.scam-card p {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+    border-top: 1px solid var(--glass-border);
+    padding-top: 1.5rem;
+}
+
+.action-buttons button {
+    flex: 1;
+}
+
+/* QR Modal / Overlay */
+#qr-overlay {
+    display: none;
+    position: fixed;
     top: 0;
     left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(5px);
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+#qr-reader {
+    width: 320px;
+    border-radius: 1rem;
+    overflow: hidden;
+    background: white;
+}
+
+#qr-close {
+    margin-top: 1rem;
+    background: var(--accent-red);
+}
+
+/* Analytics Dashboard */
+.analytics-section {
+    margin-top: 4rem;
+    padding-bottom: 5rem;
+}
+
+.stats-summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: var(--card-bg);
+    border: 1px solid var(--glass-border);
+    padding: 2rem;
+    border-radius: 1.5rem;
+    text-align: center;
+    backdrop-filter: blur(10px);
+}
+
+.stat-value {
+    display: block;
+    font-size: 3rem;
+    font-weight: 800;
+    color: var(--primary);
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+.stat-label {
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+}
+
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 2rem;
+}
+
+.chart-container {
+    padding: 2rem;
+    height: 350px; /* Cố định chiều cao để không bị 'bể' giao diện */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative; /* Quan trọng cho Chart.js responsive */
+}
+
+.chart-container h3 {
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    color: var(--text-main);
+    text-align: center;
+}
+
+canvas {
+    max-width: 100%;
+}
+
+/* NCSC Ticker */
+.ncsc-ticker {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 1rem;
+    padding: 0.75rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    overflow: hidden;
+}
+
+.ticker-label {
+    white-space: nowrap;
+    font-weight: 800;
+    color: #ef4444;
+    font-size: 0.8rem;
+}
+
+.ncsc-ticker marquee {
+    color: var(--text-main);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.full-width {
+    grid-column: 1 / -1;
 }
 
 @keyframes spin {

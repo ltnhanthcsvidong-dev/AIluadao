@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
 </head>
+
 <body>
     <div class="container">
         <header>
@@ -24,8 +26,9 @@
 
         <section class="card" id="input-section">
             <div class="input-group">
-                <textarea id="text-input" placeholder="Dán nội dung tin nhắn, email hoặc link nghi ngờ tại đây..."></textarea>
-                
+                <textarea id="text-input"
+                    placeholder="Dán nội dung tin nhắn, email hoặc link nghi ngờ tại đây..."></textarea>
+
                 <div class="media-actions">
                     <button id="btn-upload" class="secondary">
                         📁 Tải ảnh lên
@@ -33,13 +36,17 @@
                     <button id="btn-camera" class="secondary">
                         📷 Mở Camera
                     </button>
+                    <button id="btn-qr" class="secondary">
+                        🔍 Quét QR
+                    </button>
                 </div>
-                
+
                 <input type="file" id="file-input" style="display: none;" accept="image/*">
 
                 <div id="camera-preview-container">
                     <video id="video-stream" autoplay playsinline></video>
-                    <button id="btn-capture" class="secondary" style="width: 100%; border-radius: 0; border: none; border-top: 1px solid var(--primary);">
+                    <button id="btn-capture" class="secondary"
+                        style="width: 100%; border-radius: 0; border: none; border-top: 1px solid var(--primary);">
                         📸 Chụp ảnh ngay
                     </button>
                 </div>
@@ -58,16 +65,29 @@
         <section id="result-section">
             <div class="card">
                 <div id="risk-header">
+                    <!-- Risk Meter -->
+                    <div class="meter-container">
+                        <div class="meter-bg"></div>
+                        <div class="meter-needle" id="meter-needle"></div>
+                        <div class="meter-center"></div>
+                    </div>
+
                     <span id="risk-badge" class="risk-badge">Đang phân tích...</span>
                     <h2 id="result-summary">Hoàn thành phân tích 8 góc nhìn</h2>
                 </div>
-                
+
                 <div class="perspective-grid" id="perspective-grid">
                     <!-- Cards will be injected here -->
                 </div>
 
-                <button onclick="location.reload()" class="secondary" style="width: 100%; margin-top: 2rem;">
-                    🔄 Kiểm tra tin nhắn khác
+                <div class="action-buttons">
+                    <button id="btn-copy" class="secondary">📋 Sao chép báo cáo</button>
+                    <button id="btn-share" class="secondary">🔗 Chia sẻ</button>
+                </div>
+
+                <button id="btn-back" class="secondary"
+                    style="width: 100%; margin-top: 1.5rem; background: var(--primary);">
+                    🏠 Quay về Trang chủ
                 </button>
             </div>
         </section>
@@ -83,7 +103,73 @@
             <p class="empty-msg">Chưa có lịch sử quét nào.</p>
         </div>
     </div>
-    
+
+    <!-- QR Scanner Overlay -->
+    <div id="qr-overlay">
+        <div id="qr-reader"></div>
+        <button id="btn-qr-close" class="secondary"
+            style="margin-top: 1rem; background: var(--accent-red); color: white;">Đóng Quét QR</button>
+    </div>
+
+    <!-- Community Library -->
+    <section class="container library-section" id="community-library">
+        <hr style="border: 0; border-top: 1px solid var(--glass-border); margin: 4rem 0;">
+        <h2> Thư viện Cảnh giác Cộng đồng</h2>
+        <p style="text-align: center; color: var(--text-muted); margin-bottom: 2rem;">Các mẫu lừa đảo phổ biến mới nhất
+            được phát hiện bởi AI</p>
+        <div class="scam-grid" id="scam-library-grid">
+            <!-- Scam cards will be injected here -->
+        </div>
+    </section>
+
+    <!-- Analytics Dashboard -->
+    <section class="container analytics-section" id="analytics-dashboard">
+        <hr style="border: 0; border-top: 1px solid var(--glass-border); margin: 4rem 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h2>📊 Báo cáo Thống kê & Xu hướng</h2>
+            <a href="https://canhbao.khonggianmang.vn/" target="_blank" class="secondary" style="font-size: 0.8rem; text-decoration: none; padding: 0.5rem 1rem; border-radius: 2rem; background: rgba(255,255,255,0.05); color: var(--text-muted);">
+                🚩 Nguồn dữ liệu: NCSC
+            </a>
+        </div>
+        
+        <!-- Live Alert Ticker -->
+        <div class="ncsc-ticker">
+            <span class="ticker-label">CẢNH BÁO MỚI (NCSC):</span>
+            <marquee behavior="scroll" direction="left"> 
+                ⚠️ Cảnh báo giả mạo website ngân hàng chiếm đoạt OTP • ⚠️ Lừa đảo 'Việc nhẹ lương cao' qua Telegram • ⚠️ Chiêu trò giả danh Công an gọi điện đe dọa • ⚠️ Cẩn trọng với các link bình chọn tài năng nhí • ⚠️ Tuyệt đối không cung cấp thông tin cá nhân cho người lạ qua mạng.
+            </marquee>
+        </div>
+
+        <div class="stats-summary">
+            <div class="stat-card">
+                <span class="stat-value" id="stat-total-scans">0</span>
+                <span class="stat-label">Tổng lượt quét</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value" id="stat-total-scams" style="color: var(--accent-red);">0</span>
+                <span class="stat-label">Vụ lừa đảo bị chặn</span>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <div class="chart-container card full-width">
+                <h3>📈 Xu hướng Lừa đảo 7 ngày qua (Mạng lưới Quốc gia & Local)</h3>
+                <canvas id="trendChart"></canvas>
+            </div>
+            <div class="chart-container card">
+                <h3>🛡️ Tỷ lệ Scam vs. An toàn</h3>
+                <canvas id="ratioChart"></canvas>
+            </div>
+            <div class="chart-container card">
+                <h3>⚠️ Phân bổ Mức độ Rủi ro</h3>
+                <canvas id="riskChart"></canvas>
+            </div>
+        </div>
+    </section>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
+
 </html>

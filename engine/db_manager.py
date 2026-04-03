@@ -70,5 +70,61 @@ def get_scan_by_id(scan_id):
         return item
     return None
 
+def get_stats():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    # scam_ratio: Count is_scam 1 (True) vs 0 (False)
+    cursor.execute('SELECT is_scam, COUNT(*) as count FROM scan_history GROUP BY is_scam')
+    scam_data = {str(row['is_scam']): row['count'] for row in cursor.fetchall()}
+    
+    # risk_dist: Distribution across levels
+    cursor.execute('SELECT risk_level, COUNT(*) as count FROM scan_history GROUP BY risk_level')
+    risk_data = {row['risk_level']: row['count'] for row in cursor.fetchall()}
+    
+    # total: Total number of scans
+    cursor.execute('SELECT COUNT(*) as total FROM scan_history')
+    total_row = cursor.fetchone()
+    total = total_row['total'] if total_row else 0
+    
+    conn.close()
+    return {
+        "scam_ratio": scam_data,
+        "risk_dist": risk_data,
+        "total": total
+    }
+
+def get_daily_trends():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    # 7 days trend
+    trends = []
+    # from datetime import timedelta - already in script? Let's check imports
+    from datetime import datetime, timedelta
+
+    for i in range(6, -1, -1):
+        date_str = (datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d')
+        
+        cursor.execute('''
+            SELECT 
+                COUNT(*) as total,
+                SUM(CASE WHEN is_scam = 1 THEN 1 ELSE 0 END) as scams
+            FROM scan_history 
+            WHERE DATE(timestamp) = ?
+        ''', (date_str,))
+        
+        row = cursor.fetchone()
+        trends.append({
+            "date": date_str,
+            "total": row['total'] or 0,
+            "scams": row['scams'] or 0
+        })
+    
+    conn.close()
+    return trends
+
 # Initialize on import
 init_db()
