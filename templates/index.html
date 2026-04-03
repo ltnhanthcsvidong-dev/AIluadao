@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Cảnh Báo Lừa Đảo | 8 Lăng Kính Suy Luận</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-left">
+                <button id="btn-history-toggle" class="icon-btn" title="Xem lịch sử">📜</button>
+            </div>
+            <div class="theme-toggle" id="theme-toggle" title="Chuyển chế độ Sáng/Tối">
+                🌙
+            </div>
+            <h1>AIluadao 🛡️</h1>
+            <p class="subtitle">Bảo vệ học sinh bằng 8 lăng kính suy luận đa chiều</p>
+        </header>
+
+        <section class="card" id="input-section">
+            <div class="input-group">
+                <textarea id="text-input" placeholder="Dán nội dung tin nhắn, email hoặc link nghi ngờ tại đây..."></textarea>
+                
+                <div class="media-actions">
+                    <button id="btn-upload" class="secondary">
+                        📁 Tải ảnh lên
+                    </button>
+                    <button id="btn-camera" class="secondary">
+                        📷 Mở Camera
+                    </button>
+                </div>
+                
+                <input type="file" id="file-input" style="display: none;" accept="image/*">
+
+                <div id="camera-preview-container">
+                    <video id="video-stream" autoplay playsinline></video>
+                    <button id="btn-capture" class="secondary" style="width: 100%; border-radius: 0; border: none; border-top: 1px solid var(--primary);">
+                        📸 Chụp ảnh ngay
+                    </button>
+                </div>
+
+                <div id="image-preview-container">
+                    <img id="image-preview" src="" alt="Preview">
+                </div>
+
+                <button id="btn-scan" class="btn-scan">
+                    <span id="btn-text">Bắt đầu Phân tích Đa chiều</span>
+                    <div class="loader" id="loader"></div>
+                </button>
+            </div>
+        </section>
+
+        <section id="result-section">
+            <div class="card">
+                <div id="risk-header">
+                    <span id="risk-badge" class="risk-badge">Đang phân tích...</span>
+                    <h2 id="result-summary">Hoàn thành phân tích 8 góc nhìn</h2>
+                </div>
+                
+                <div class="perspective-grid" id="perspective-grid">
+                    <!-- Cards will be injected here -->
+                </div>
+
+                <button onclick="location.reload()" class="secondary" style="width: 100%; margin-top: 2rem;">
+                    🔄 Kiểm tra tin nhắn khác
+                </button>
+            </div>
+        </section>
+    </div>
+
+    <div id="history-sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <h3>Lịch sử Quét</h3>
+            <button id="btn-close-history" class="icon-btn">✕</button>
+        </div>
+        <div id="history-list" class="history-list">
+            <!-- History items will be injected here -->
+            <p class="empty-msg">Chưa có lịch sử quét nào.</p>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
