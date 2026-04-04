@@ -1,13 +1,17 @@
 import os
 import json
+import logging
 import google.generativeai as genai
 from PIL import Image
+
+# Setup logging
+logger = logging.getLogger(__name__)
 
 # Configure Gemini API
 API_KEY = os.environ.get("GEMINI_API_KEY")
 if not API_KEY:
     # Note: The user MUST set this environment variable to use the AI features.
-    print("WARNING: GEMINI_API_KEY environment variable not set.")
+    logger.warning("WARNING: GEMINI_API_KEY environment variable not set.")
 
 genai.configure(api_key=API_KEY)
 
@@ -61,8 +65,12 @@ def analyze_content(text="", image_path=None):
         content.append(f"NỘI DUNG VĂN BẢN: {text}")
     
     if image_path:
-        img = Image.open(image_path)
-        content.append(img)
+        try:
+            img = Image.open(image_path)
+            content.append(img)
+        except Exception as e:
+            logger.error(f"Error opening image: {str(e)}")
+            return {"error": "Không thể xử lý hình ảnh. Vui lòng kiểm tra định dạng và kích thước."}
 
     try:
         response = model.generate_content(content, generation_config={"response_mime_type": "application/json"})
@@ -82,7 +90,10 @@ def analyze_content(text="", image_path=None):
         # Parse result
         result_json = json.loads(raw_text, strict=False) # strict=False handles some control chars
         return result_json
+        
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON parsing error: {str(e)}")
+        return {"error": "Lỗi phân tích kết quả từ AI. Vui lòng thử lại sau."}
     except Exception as e:
-        print(f"Error in Gemini: {str(e)}")
-        # Fallback if JSON mode fails
-        return {"error": f"Lỗi phân tích kết quả từ AI: {str(e)}"}
+        logger.error(f"Error in Gemini analysis: {str(e)}", exc_info=True)
+        return {"error": "Lỗi xử lý với AI. Vui lòng thử lại sau."}

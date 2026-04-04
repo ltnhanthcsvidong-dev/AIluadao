@@ -65,13 +65,39 @@ fileInput.addEventListener('change', (e) => {
 
 // 2. Handle Camera
 btnCamera.addEventListener('click', async () => {
+    console.log("Đang yêu cầu quyền truy cập Camera...");
+    
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("Trình duyệt của bạn không hỗ trợ truy cập Camera hoặc bạn đang sử dụng kết nối không an toàn (cần HTTPS hoặc localhost).");
+        return;
+    }
+
     try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        // Tắt stream cũ nếu có
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+        }
+
+        stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+                facingMode: "environment", // Ưu tiên camera sau trên điện thoại
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            } 
+        });
+        
         videoStream.srcObject = stream;
         cameraBox.style.display = 'block';
         previewBox.style.display = 'none';
+        console.log("Camera đã được mở thành công.");
     } catch (err) {
-        alert("Không thể truy cập Camera: " + err.message);
+        console.error("Lỗi Camera:", err);
+        let msg = "Không thể truy cập Camera: ";
+        if (err.name === 'NotAllowedError') msg += "Bạn đã từ chối cấp quyền.";
+        else if (err.name === 'NotFoundError') msg += "Không tìm thấy thiết bị camera.";
+        else if (err.name === 'NotReadableError') msg += "Camera đang bị ứng dụng khác sử dụng.";
+        else msg += err.message;
+        alert(msg);
     }
 });
 

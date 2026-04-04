@@ -1,0 +1,34 @@
+BÁO CÁO CÔNG NGHỆ VÀ CÔNG CỤ DỰ ÁN
+================================
+
+Dự án: Hệ Thống Phát Hiện Lừa Đảo AI (AI Scam Detection System)
+
+1. NGÔN NGỮ LẬP TRÌNH
+---------------------
+* Python 3.10+: Ngôn ngữ chính xử lý logic Backend, tích hợp AI và quản lý dữ liệu.
+* JavaScript (ES6+): Xử lý logic Frontend, tương tác người dùng và hiển thị biểu đồ.
+* HTML5 & CSS3: Xây dựng cấu trúc giao diện và phong cách thiết kế Glassmorphism hiện đại.
+
+2. FRAMEWORK & THƯ VIỆN CHÍNH
+-----------------------------
+* Flask (Python): Web Framework siêu nhẹ, linh hoạt để xây dựng các API và điều phối ứng dụng.
+* Google Generative AI (Gemini API): "Bộ não" của hệ thống, sử dụng mô hình Gemini 2.5 Flash để phân tích đa chiều.
+* Chart.js: Thư viện JavaScript mạnh mẽ dùng để trực quan hóa dữ liệu thống kê dưới dạng biểu đồ.
+* SQLite: Hệ quản trị cơ sở dữ liệu quan hệ nhỏ gọn, được tích hợp sẵn để lưu trữ lịch sử quét.
+* Pillow (PIL): Xử lý và tối ưu hóa hình ảnh trước khi gửi đến AI.
+* Flask-Limiter: Thành phần bảo mật giúp ngăn chặn các cuộc tấn công Brute-force hoặc lạm dụng API.
+* Bleach: Thư viện làm sạch (sanitize) dữ liệu đầu vào, ngăn chặn tấn công XSS.
+
+3. CÔNG CỤ PHÁT TRIỂN & MÔI TRƯỜNG
+----------------------------------
+* VS Code: Trình soạn thảo mã nguồn chính.
+* Git: Hệ thống quản lý phiên bản.
+* Dotenv: Quản lý các biến môi trường và khóa API bảo mật (.env).
+* Gunicorn: WSGI HTTP Server để triển khai ứng dụng trên môi trường sản xuất (như Render/Heroku).
+* Procfile: Cấu hình quy trình chạy ứng dụng trên các nền tảng Cloud.
+
+4. ĐẶC ĐIỂM KỸ THUẬT NỔI BẬT
+----------------------------
+* Kiến trúc: Monolithic tinh gọn với sự phân chia rõ ràng giữa engine xử lý (engine/) và giao diện (templates/static/).
+* Thiết kế: Glassmorphism (hiệu ứng kính mờ) mang lại cảm giác cao cấp và hiện đại.
+* Bảo mật: Tích hợp sẵn bộ lọc đầu vào, giới hạn tần suất yêu cầu và bảo vệ khóa API.

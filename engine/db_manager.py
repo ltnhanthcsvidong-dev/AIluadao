@@ -1,47 +1,74 @@
 import sqlite3
 import json
 import os
+import logging
 from datetime import datetime
+
+# Setup logging
+logger = logging.getLogger(__name__)
 
 DB_PATH = 'database.db'
 
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS scan_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            text_content TEXT,
-            image_path TEXT,
-            is_scam BOOLEAN,
-            risk_level TEXT,
-            summary TEXT,
-            perspectives TEXT
-        )
-    ''')
-    conn.commit()
-    conn.close()
+    """Initialize database with required tables"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS scan_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                text_content TEXT,
+                image_path TEXT,
+                is_scam BOOLEAN,
+                risk_level TEXT,
+                summary TEXT,
+                perspectives TEXT
+            )
+        ''')
+        
+        # Create indexes for better query performance
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_timestamp ON scan_history(timestamp)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_risk_level ON scan_history(risk_level)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_is_scam ON scan_history(is_scam)')
+        
+        conn.commit()
+        conn.close()
+        logger.info("Database initialized successfully")
+    except Exception as e:
+        logger.error(f"Error initializing database: {str(e)}")
+        raise
 
 def save_scan(text, image_path, result):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('''
-        INSERT INTO scan_history 
-        (text_content, image_path, is_scam, risk_level, summary, perspectives)
-        VALUES (?, ?, ?, ?, ?, ?)
-    ''', (
-        text, 
-        image_path, 
-        result.get('is_scam', False), 
-        result.get('risk_level', 'Unknown'), 
-        result.get('summary', ''), 
-        json.dumps(result.get('perspectives', {}))
-    ))
-    conn.commit()
-    last_id = cursor.lastrowid
-    conn.close()
-    return last_id
+    """Save scan result to database"""
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO scan_history 
+            (text_content, image_path, is_scam, risk_level, summary, perspectives)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (
+            text, 
+            image_path, 
+            result.get('is_scam', False), 
+            result.get('risk_level', 'Unknown'), 
+            result.get('summary', ''), 
+            json.dumps(result.get('perspectives', {}))
+        ))
+        conn.commit()
+        last_id = cursor.lastrowid
+        logger.info(f"Scan saved with ID: {last_id}")
+        return last_id
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        logger.error(f"Error saving scan: {str(e)}")
+        raise
+    finally:
+        if conn:
+            conn.close()
 
 def get_all_history():
     conn = sqlite3.connect(DB_PATH)

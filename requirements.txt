@@ -4,3 +4,5 @@ Pillow
 werkzeug
 python-dotenv
 gunicorn
+Flask-Limiter
+bleach
