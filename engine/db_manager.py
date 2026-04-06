@@ -7,11 +7,17 @@ from datetime import datetime
 # Setup logging
 logger = logging.getLogger(__name__)
 
-DB_PATH = 'database.db'
+DB_PATH = os.environ.get('DATABASE_PATH', 'database.db')
+
+
+def ensure_db_dir():
+    db_dir = os.path.dirname(os.path.abspath(DB_PATH))
+    os.makedirs(db_dir, exist_ok=True)
 
 def init_db():
     """Initialize database with required tables"""
     try:
+        ensure_db_dir()
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute('''

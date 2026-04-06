@@ -1,9 +1,10 @@
 import sqlite3
 import json
 import random
+import os
 from datetime import datetime, timedelta
 
-DB_PATH = 'database.db'
+DB_PATH = os.environ.get('DATABASE_PATH', 'database.db')
 
 scam_templates = [
     {
