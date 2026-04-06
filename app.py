@@ -132,9 +132,21 @@ def history_detail(scan_id):
 @limiter.limit("30 per minute")
 def top_scams():
     try:
-        # Lấy 6 vụ lừa đảo nguy hiểm nhất (Risk level Critical/High)
+        # Lấy 6 vụ lừa đảo nguy hiểm nhất (Risk level Critical/High), đảm bảo không trùng lặp tiêu đề
         data = get_all_history()
-        top = [item for item in data if item.get('risk_level') in ['Critical', 'High']][:6]
+        unique_summaries = set()
+        top = []
+        for item in data:
+            summary = item.get('summary', '').strip()
+            if not summary:
+                continue
+                
+            if item.get('risk_level') in ['Critical', 'High'] and summary not in unique_summaries:
+                top.append(item)
+                unique_summaries.add(summary)
+            
+            if len(top) >= 6:
+                break
         return jsonify(top)
     except Exception as e:
         logger.error(f"Top scams endpoint error: {str(e)}")
