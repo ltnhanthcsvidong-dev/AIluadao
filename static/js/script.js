@@ -472,6 +472,11 @@ async function loadHistory() {
     } catch (err) { console.error(err); }
 }
 
+function truncateText(text, maxLength) {
+    if (!text) return '';
+    return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
+}
+
 async function loadCommunityLibrary() {
     const libGrid = document.getElementById('scam-library-grid');
     try {
@@ -482,10 +487,11 @@ async function loadCommunityLibrary() {
         data.forEach(item => {
             const card = document.createElement('div');
             card.className = 'scam-card';
+            const previewText = item?.perspectives?.action || Object.values(item.perspectives || {})[0] || '';
             card.innerHTML = `
                 <span class="scam-type">${item.risk_level}</span>
-                <h4>${item.summary.substring(0, 50)}...</h4>
-                <p>${Object.values(item.perspectives)[0].substring(0, 100)}...</p>
+                <h4>${truncateText(item.summary || 'Kết quả quét', 50)}</h4>
+                <p>${truncateText(previewText, 100)}</p>
             `;
             card.onclick = () => renderResult(item);
             libGrid.appendChild(card);

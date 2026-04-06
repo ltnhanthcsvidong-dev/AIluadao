@@ -1,6 +1,7 @@
 import os
 import uuid
 import logging
+import re
 from flask import Flask, render_template, request, jsonify
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
@@ -56,6 +57,26 @@ def sanitize_text(text, max_length=5000):
     text = bleach.clean(text, tags=[], strip=True)
     
     return text.strip()
+
+
+def tokenize_summary(summary):
+    return {
+        token for token in re.findall(r"\w+", summary.lower())
+        if len(token) > 1
+    }
+
+
+def is_similar_summary(summary, seen_token_sets, similarity_threshold=0.75):
+    tokens = tokenize_summary(summary)
+    if not tokens:
+        return True, tokens
+
+    for seen_tokens in seen_token_sets:
+        union = tokens | seen_tokens
+        if union and (len(tokens & seen_tokens) / len(union)) >= similarity_threshold:
+            return True, tokens
+
+    return False, tokens
 
 @app.route('/')
 def index():
@@ -134,16 +155,20 @@ def top_scams():
     try:
         # Lấy 6 vụ lừa đảo nguy hiểm nhất (Risk level Critical/High), đảm bảo không trùng lặp tiêu đề
         data = get_all_history()
-        unique_summaries = set()
+        seen_token_sets = []
         top = []
         for item in data:
             summary = item.get('summary', '').strip()
             if not summary:
                 continue
-                
-            if item.get('risk_level') in ['Critical', 'High'] and summary not in unique_summaries:
+
+            if item.get('risk_level') not in ['Critical', 'High']:
+                continue
+
+            is_duplicate, tokens = is_similar_summary(summary, seen_token_sets)
+            if not is_duplicate:
                 top.append(item)
-                unique_summaries.add(summary)
+                seen_token_sets.append(tokens)
             
             if len(top) >= 6:
                 break
